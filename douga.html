@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>体験ワーク｜動画とフレームレート — 1秒に何枚送る？</title>
+<style>
+  :root{--ink:#16203a;--mute:#5b677e;--line:#d8deea;--bg:#f4f7fc;--card:#ffffff;--accent:#1d6fd6;--warn:#b34700;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Yu Gothic UI","Meiryo","Hiragino Sans",system-ui,sans-serif;line-height:1.7;padding:24px;}
+  .wrap{max-width:980px;margin:0 auto;}
+  h1{font-size:24px;font-weight:700;margin:0 0 4px;}
+  .sub{color:var(--mute);font-size:15px;margin:0 0 18px;}
+  .bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:8px;}
+  button{font-size:16px;padding:10px 18px;border-radius:10px;border:1px solid var(--line);background:#fff;cursor:pointer;}
+  button.primary{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:700;}
+  .note{color:var(--mute);font-size:13px;margin:4px 0 16px;}
+  .info{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 16px;margin-bottom:14px;font-size:15px;display:flex;gap:24px;flex-wrap:wrap;}
+  .info b{font-family:"Consolas",monospace;}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px;}
+  .panel canvas{width:100%;display:block;border-radius:8px;background:#000;}
+  .plab{font-size:18px;font-weight:700;margin-top:8px;}
+  .plab span{font-size:13px;color:var(--mute);font-weight:400;margin-left:8px;}
+  .pdata{font-size:14px;color:var(--mute);}
+  .pdata b{color:var(--warn);font-family:"Consolas",monospace;font-size:16px;}
+  .point{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-top:16px;font-size:15px;}
+  @media (max-width:620px){.grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>動画とフレームレート — 1秒に何枚送る？</h1>
+  <p class="sub">体験ワーク用｜動画＝パラパラまんが。1秒あたりの枚数（fps）を減らすとどうなる？</p>
+  <p style="margin:0 0 18px;"><a href="index.html" style="color:#1d6fd6;font-size:15px;text-decoration:none;">← RGBチャンネル並べ替え＆色づくり にもどる</a></p>
+
+  <div class="bar">
+    <button class="primary" id="pick">スマホ・PCの動画を選ぶ</button>
+    <button id="demo">内蔵アニメで試す</button>
+    <button id="playpause">⏸ 一時停止</button>
+  </div>
+  <p class="note">※動画はこのページの中だけで再生され、どこにも送信されません。</p>
+
+  <div class="info" id="info">動画を選ぶか「内蔵アニメで試す」を押してください</div>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="point">
+    <b>ポイント</b>：どの画面も<b>1枚1枚は同じ画質</b>。違うのは「1秒に何枚見せるか」だけ。
+    枚数を減らすとデータは減るけど、カクカクする——これが<b>時間方向の間引き</b>。
+    JPEGの「空間方向の間引き」と組み合わせたのが動画の圧縮（MPEG）。
+  </div>
+  <input type="file" id="file" accept="video/*" style="display:none">
+</div>
+
+<script>
+(function(){
+  var FPSES=[30,12,4,1];
+  var PW=480,PH=270;
+  var grid=document.getElementById('grid'),info=document.getElementById('info');
+  var video=document.createElement('video');
+  video.loop=true;video.muted=true;video.playsInline=true;video.setAttribute('playsinline','');
+  var mode='none',playing=true,fileMB=null;
+  var panels=FPSES.map(function(fps){
+    var div=document.createElement('div');div.className='panel';
+    var cv=document.createElement('canvas');cv.width=PW;cv.height=PH;
+    var lab=document.createElement('div');lab.className='plab';
+    var dat=document.createElement('div');dat.className='pdata';
+    div.appendChild(cv);div.appendChild(lab);div.appendChild(dat);grid.appendChild(div);
+    return{fps:fps,cv:cv,ctx:cv.getContext('2d'),lab:lab,dat:dat,last:-1e9};
+  });
+
+  function fmtMB(bytes){
+    if(bytes>=1e9)return (bytes/1e9).toFixed(1)+' GB';
+    if(bytes>=1e6)return Math.round(bytes/1e6).toLocaleString()+' MB';
+    return Math.round(bytes/1e3)+' KB';
+  }
+  function srcSize(){
+    if(mode==='video'&&video.videoWidth)return[video.videoWidth,video.videoHeight];
+    return[640,360];
+  }
+  function updateLabels(){
+    var s=srcSize(),perFrame=s[0]*s[1]*3; // 24ビット=3バイト/画素
+    panels.forEach(function(p,i){
+      p.lab.innerHTML=p.fps+' fps'+(i===0?'<span>（スマホの動画とほぼ同じ）</span>':'<span>1秒に'+p.fps+'枚</span>');
+      p.dat.innerHTML='非圧縮データ量: <b>'+fmtMB(perFrame*p.fps)+'/秒</b>（1枚 '+fmtMB(perFrame)+' × '+p.fps+'）';
+    });
+    var t='解像度 <b>'+s[0]+'×'+s[1]+'</b>｜非圧縮1枚 <b>'+fmtMB(perFrame)+'</b>（'+s[0]+'×'+s[1]+'×3バイト）';
+    if(fileMB!==null)t+='｜実際のファイル <b>'+fileMB+'</b> ← 圧縮のおかげでこんなに小さい！';
+    info.innerHTML=t;
+  }
+
+  // 内蔵アニメ（跳ねるボール＋流れる背景）
+  var demoCv=document.createElement('canvas');demoCv.width=640;demoCv.height=360;
+  var dctx=demoCv.getContext('2d');
+  function drawDemo(t){
+    var w=640,h=360;
+    var g=dctx.createLinearGradient(0,0,0,h);g.addColorStop(0,'#78b4ff');g.addColorStop(1,'#5faf41');
+    dctx.fillStyle=g;dctx.fillRect(0,0,w,h);
+    dctx.fillStyle='#f5f5f5';
+    for(var i=0;i<3;i++){var cx=((t*60+i*260)%(w+160))-80;dctx.beginPath();dctx.arc(cx,60+i*28,26,0,Math.PI*2);dctx.fill();}
+    var bx=w*0.5+Math.sin(t*1.5)*w*0.34, by=h-60-Math.abs(Math.sin(t*3.2))*(h-140);
+    dctx.fillStyle='#e12d2d';dctx.beginPath();dctx.arc(bx,by,30,0,Math.PI*2);dctx.fill();
+    dctx.fillStyle='#16203a';dctx.font='700 26px sans-serif';dctx.textAlign='left';
+    dctx.fillText(t.toFixed(1)+' 秒',16,h-16);
+  }
+  function drawSource(ctx,t){
+    if(mode==='video'){ctx.drawImage(video,0,0,PW,PH);}
+    else{drawDemo(t);ctx.drawImage(demoCv,0,0,PW,PH);}
+  }
+  function now(){return performance.now()/1000;}
+  function curT(){return mode==='video'?video.currentTime:now();}
+
+  function loop(){
+    if(mode!=='none'&&playing){
+      var t=curT();
+      panels.forEach(function(p){
+        if(t<p.last)p.last=-1e9; // ループで巻き戻った
+        if(t-p.last>=1/p.fps-0.001){drawSource(p.ctx,t);p.last=t;}
+      });
+    }
+    requestAnimationFrame(loop);
+  }
+
+  document.getElementById('pick').onclick=function(){document.getElementById('file').click();};
+  document.getElementById('file').onchange=function(e){
+    var f=e.target.files[0];if(!f)return;
+    fileMB=(f.size/1e6).toFixed(1)+' MB';
+    video.src=URL.createObjectURL(f);
+    video.onloadedmetadata=function(){mode='video';resetPanels();updateLabels();video.play();};
+  };
+  document.getElementById('demo').onclick=function(){
+    mode='demo';fileMB=null;video.pause();resetPanels();updateLabels();
+  };
+  var ppBtn=document.getElementById('playpause');
+  ppBtn.onclick=function(){
+    playing=!playing;
+    ppBtn.textContent=playing?'⏸ 一時停止':'▶ 再生';
+    if(mode==='video'){if(playing)video.play();else video.pause();}
+  };
+  function resetPanels(){panels.forEach(function(p){p.last=-1e9;});}
+  updateLabelsInit();
+  function updateLabelsInit(){
+    panels.forEach(function(p,i){
+      p.lab.innerHTML=p.fps+' fps'+(i===0?'<span>（スマホの動画とほぼ同じ）</span>':'<span>1秒に'+p.fps+'枚</span>');
+      p.dat.textContent='';
+    });
+  }
+  loop();
+})();
+</script>
+</body>
+</html>
