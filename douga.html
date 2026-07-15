@@ -71,9 +71,9 @@
   });
 
   function fmtMB(bytes){
-    if(bytes>=1e9)return (bytes/1e9).toFixed(1)+' GB';
-    if(bytes>=1e6)return Math.round(bytes/1e6).toLocaleString()+' MB';
-    return Math.round(bytes/1e3)+' KB';
+    var mb=bytes/1e6;
+    if(mb<10)return mb.toFixed(1)+' MB';
+    return Math.round(mb).toLocaleString()+' MB';
   }
   function srcSize(){
     if(mode==='video'&&video.videoWidth)return[video.videoWidth,video.videoHeight];
@@ -128,6 +128,10 @@
     fileMB=(f.size/1e6).toFixed(1)+' MB';
     video.src=URL.createObjectURL(f);
     video.onloadedmetadata=function(){mode='video';resetPanels();updateLabels();video.play();};
+    video.onerror=function(){
+      mode='none';
+      info.innerHTML='<span style="color:#b34700;font-weight:700;">この動画はこのブラウザで再生できない形式です（iPhoneの「高効率」HEVC動画など）。</span> iPhone側の設定「カメラ→フォーマット→互換性優先」で撮った動画か、別の動画をお試しください。';
+    };
   };
   document.getElementById('demo').onclick=function(){
     mode='demo';fileMB=null;video.pause();resetPanels();updateLabels();
