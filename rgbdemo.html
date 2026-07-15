@@ -35,7 +35,7 @@
     <button id="next" class="primary">次へ ▶</button>
     <button id="replay">↻ もう一度</button>
     <span class="spacer"></span>
-    <button id="grayBtn">白黒⇄色つき</button>
+    <button id="grayBtn">チャンネル表示：色つき</button>
     <button id="sample">別のサンプル</button>
     <button id="pick">自分の写真を選ぶ</button>
     <input type="file" id="file" accept="image/*" style="display:none">
@@ -242,7 +242,16 @@
   document.getElementById('next').onclick=function(){go(1);};
   document.getElementById('prev').onclick=function(){go(-1);};
   document.getElementById('replay').onclick=replay;
-  document.getElementById('grayBtn').onclick=function(){grayMode=!grayMode;};
+  var grayBtn=document.getElementById('grayBtn');
+  function toggleGray(){
+    grayMode=!grayMode;
+    grayBtn.textContent='チャンネル表示：'+(grayMode?'白黒（明るさ）':'色つき');
+    grayBtn.style.borderColor=grayMode?'#ffd240':'#2a3352';
+  }
+  grayBtn.onclick=function(){
+    toggleGray();
+    if(scene<1||scene>3){scene=1;replay();} // 分解シーンに移動して効果を見せる
+  };
   document.getElementById('sample').onclick=function(){sampleIdx++;loadSample(sampleIdx);};
   document.getElementById('pick').onclick=function(){document.getElementById('file').click();};
   document.getElementById('file').onchange=function(e){
@@ -255,7 +264,7 @@
     if(e.key===' '||e.key==='ArrowRight'){e.preventDefault();go(1);}
     else if(e.key==='ArrowLeft'||e.key==='b'||e.key==='B'){go(-1);}
     else if(e.key==='r'||e.key==='R'){replay();}
-    else if(e.key==='g'||e.key==='G'){grayMode=!grayMode;}
+    else if(e.key==='g'||e.key==='G'){toggleGray();}
     else if(e.key==='n'||e.key==='N'){sampleIdx++;loadSample(sampleIdx);}
   });
   loadSample(0);
