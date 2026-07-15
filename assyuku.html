@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>体験ワーク｜圧縮の謎 — どこまで省いてもバレない？</title>
+<style>
+  :root{
+    --ink:#16203a; --mute:#5b677e; --line:#d8deea;
+    --bg:#f4f7fc; --card:#ffffff; --accent:#1d6fd6;
+    --rB:#e24b4a; --gB:#3fae5a; --bB:#378add;
+    --warn:#b3540e;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Yu Gothic UI","Meiryo","Hiragino Sans",system-ui,sans-serif;line-height:1.7;padding:24px;}
+  .wrap{max-width:960px;margin:0 auto;}
+  .h1row{display:flex;align-items:center;gap:12px;}
+  .h1row .dot{width:15px;height:15px;border-radius:50%;flex:none;}
+  h1{font-size:26px;font-weight:700;margin:0 0 4px;}
+  .sub{color:var(--mute);font-size:15px;margin:0 0 20px;}
+  h2{font-size:21px;font-weight:700;margin:0 0 6px;display:flex;align-items:center;}
+  .secno{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:30px;border-radius:50%;background:var(--ink);color:#fff;font-size:16px;margin-right:10px;flex:none;}
+  .lead{color:var(--mute);font-size:15px;margin:0 0 14px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;text-align:center;}
+  .cap{font-size:14px;color:var(--mute);margin-top:6px;}
+  canvas{width:100%;display:block;border-radius:8px;border:1px solid var(--line);}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0;}
+  .duo{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+  .srcrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:20px;}
+  .actbtn{font-size:16px;padding:10px 20px;border-radius:10px;border:1px solid var(--line);background:#fff;cursor:pointer;}
+  .btn-primary{background:var(--accent);color:#fff;border:1px solid var(--accent);font-weight:700;}
+  .slider-row{display:flex;align-items:center;gap:14px;margin:10px 0 6px;}
+  .slider-row .lab{font-size:15px;font-weight:700;white-space:nowrap;}
+  .slider-row input{flex:1;height:30px;}
+  .slider-row .val{min-width:74px;text-align:right;font-family:"Consolas",monospace;font-size:18px;font-weight:700;}
+  .outs{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-top:12px;}
+  .out{background:var(--bg);border-radius:10px;padding:10px 14px;}
+  .out .k{font-size:13px;color:var(--mute);margin-bottom:2px;}
+  .out .v{font-family:"Consolas",monospace;font-size:19px;font-weight:700;}
+  .out .v small{font-size:13px;font-weight:400;color:var(--mute);}
+  .ask{background:#fff7e8;border:1px solid #f0d9a8;border-radius:10px;padding:10px 14px;font-size:15px;margin-top:14px;}
+  .ask b{color:var(--warn);}
+  .bars{margin-top:14px;}
+  .barrow{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+  .barrow .bl{width:110px;font-size:13px;color:var(--mute);text-align:right;flex:none;}
+  .btrack{flex:1;background:var(--bg);border:1px solid var(--line);border-radius:6px;height:26px;position:relative;overflow:hidden;}
+  .bfill{height:100%;border-radius:5px 0 0 5px;}
+  .braw{background:#98a3b8;width:100%;}
+  .bjpg{background:var(--accent);min-width:1.5%;}
+  .blabel{position:absolute;left:8px;top:0;height:100%;display:flex;align-items:center;font-family:"Consolas",monospace;font-size:13px;color:var(--ink);text-shadow:0 1px 2px #fff,0 -1px 2px #fff;}
+  @media (max-width:620px){ .duo{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="h1row">
+    <span class="dot" style="background:var(--rB)"></span><span class="dot" style="background:var(--gB)"></span><span class="dot" style="background:var(--bB)"></span>
+    <h1>圧縮の謎 — どこまで省いてもバレない？</h1>
+  </div>
+  <p class="sub">体験ワーク用｜写真の「数字」を減らしても、見た目は変わらない…？</p>
+  <p style="margin:0 0 22px;"><a href="index.html" style="color:#1d6fd6;font-size:15px;text-decoration:none;">← RGBチャンネル並べ替え＆色づくり にもどる</a></p>
+
+  <div class="srcrow">
+    <span style="font-size:15px;">使う写真：</span>
+    <button class="actbtn" id="bSample">サンプル画像</button>
+    <label class="actbtn btn-primary" style="display:inline-block;">自分の写真を選ぶ<input type="file" id="fpick" accept="image/*" style="display:none;"></label>
+    <span class="cap" style="margin:0;">※写真はこのページの中だけで使われ、どこにも送信されません</span>
+  </div>
+
+  <h2><span class="secno">1</span>数字を省く実験（1色のビット数を減らす）</h2>
+  <p class="lead">授業でやった通り、色は1色あたり <b>8ビット（256段階）</b>。この段階を減らす＝数字を省くと…？</p>
+  <div class="duo">
+    <div class="card"><canvas id="q0" width="480" height="320"></canvas><div class="cap">元の写真（24ビット／1画素）</div></div>
+    <div class="card"><canvas id="q1" width="480" height="320"></canvas><div class="cap" id="qcap">省いた写真</div></div>
+  </div>
+  <div class="slider-row">
+    <span class="lab">1色あたりのビット数</span>
+    <input type="range" id="sBits" min="1" max="8" value="8">
+    <span class="val" id="vBits">8ビット</span>
+  </div>
+  <div class="outs">
+    <div class="out"><div class="k">1画素のビット数</div><div class="v" id="oBpp">24<small> ビット</small></div></div>
+    <div class="out"><div class="k">つくれる色の数</div><div class="v" id="oColors">約1677万<small> 色</small></div></div>
+    <div class="out"><div class="k">データ量</div><div class="v" id="oQRatio">100%<small>（そのまま）</small></div></div>
+  </div>
+  <div class="ask">班で相談：<b>何ビットまで減らしても</b>、左の写真と見分けがつかない？　空のグラデーションに注目！</div>
+
+  <hr>
+
+  <h2><span class="secno">2</span>本物のJPEG圧縮（スマホと同じしくみ）</h2>
+  <p class="lead">スマホは「人間の目が気づきにくい部分」を賢く省く <b>JPEG圧縮</b> を使っています。品質を下げるほどデータは小さくなるけど…どこからバレる？</p>
+  <div class="duo">
+    <div class="card"><canvas id="j0" width="480" height="320"></canvas><div class="cap">元の写真（無圧縮 <span id="jRaw">450 KB</span>）</div></div>
+    <div class="card"><canvas id="j1" width="480" height="320"></canvas><div class="cap" id="jcap">JPEG圧縮後</div></div>
+  </div>
+  <div class="slider-row">
+    <span class="lab">JPEG品質</span>
+    <input type="range" id="sQ" min="1" max="100" value="90">
+    <span class="val" id="vQ">90</span>
+  </div>
+  <div class="outs">
+    <div class="out"><div class="k">圧縮後のデータ量</div><div class="v" id="oJSize">--<small> KB</small></div></div>
+    <div class="out"><div class="k">元の何分の1？</div><div class="v" id="oJRatio">--</div></div>
+    <div class="out"><div class="k">節約できた割合</div><div class="v" id="oJSave">--%</div></div>
+  </div>
+  <div class="bars">
+    <div class="barrow"><span class="bl">元（無圧縮）</span><div class="btrack"><div class="bfill braw"></div><div class="blabel" id="brawlab">450 KB</div></div></div>
+    <div class="barrow"><span class="bl">JPEG圧縮後</span><div class="btrack"><div class="bfill bjpg" id="bjpgfill"></div><div class="blabel" id="bjpglab">--</div></div></div>
+  </div>
+  <div class="ask">班で相談：<b>品質をいくつまで下げても</b>バレない？　バレるとしたら、写真のどこから崩れる？（輪郭のまわり・なだらかな空に注目）　→ この「どこまで省いてもバレないか」を研究するのが情報科学！</div>
+</div>
+
+<script>
+(function(){
+  var W=480,H=320;
+  var srcCv=document.createElement('canvas');srcCv.width=W;srcCv.height=H;
+  var sctx=srcCv.getContext('2d');
+
+  function drawSample(){
+    // 空のグラデーション（バンディングが見えやすい）
+    var sky=sctx.createLinearGradient(0,0,0,H*0.62);
+    sky.addColorStop(0,'rgb(20,70,160)');sky.addColorStop(1,'rgb(190,225,250)');
+    sctx.fillStyle=sky;sctx.fillRect(0,0,W,H*0.62);
+    // 夕日（放射グラデーション）
+    var sun=sctx.createRadialGradient(W*0.72,H*0.34,4,W*0.72,H*0.34,80);
+    sun.addColorStop(0,'rgb(255,246,200)');sun.addColorStop(0.35,'rgb(255,205,80)');sun.addColorStop(1,'rgba(255,160,40,0)');
+    sctx.fillStyle=sun;sctx.beginPath();sctx.arc(W*0.72,H*0.34,80,0,Math.PI*2);sctx.fill();
+    // 海
+    var sea=sctx.createLinearGradient(0,H*0.62,0,H);
+    sea.addColorStop(0,'rgb(35,110,150)');sea.addColorStop(1,'rgb(10,45,80)');
+    sctx.fillStyle=sea;sctx.fillRect(0,H*0.62,W,H*0.38);
+    // 山
+    sctx.fillStyle='rgb(60,90,70)';
+    sctx.beginPath();sctx.moveTo(0,H*0.62);sctx.lineTo(W*0.22,H*0.36);sctx.lineTo(W*0.46,H*0.62);sctx.closePath();sctx.fill();
+    sctx.fillStyle='rgb(45,72,58)';
+    sctx.beginPath();sctx.moveTo(W*0.28,H*0.62);sctx.lineTo(W*0.5,H*0.44);sctx.lineTo(W*0.72,H*0.62);sctx.closePath();sctx.fill();
+    // 果物（はっきりした色）
+    sctx.fillStyle='rgb(225,45,45)';sctx.beginPath();sctx.arc(W*0.14,H*0.82,30,0,Math.PI*2);sctx.fill();
+    sctx.fillStyle='rgb(255,210,45)';sctx.beginPath();sctx.arc(W*0.30,H*0.86,24,0,Math.PI*2);sctx.fill();
+    sctx.fillStyle='rgb(120,200,90)';sctx.beginPath();sctx.arc(W*0.45,H*0.83,20,0,Math.PI*2);sctx.fill();
+    // 細かい模様（JPEGのノイズが出やすい）
+    sctx.strokeStyle='rgb(255,255,255)';sctx.lineWidth=2;
+    for(var i=0;i<5;i++){var y=H*0.68+i*10;sctx.beginPath();sctx.moveTo(W*0.60,y);sctx.lineTo(W*0.95,y);sctx.stroke();}
+    sctx.fillStyle='#ffffff';sctx.font='bold 26px sans-serif';sctx.fillText('ABC 123',W*0.60,H*0.92);
+    // 写真らしい細かなノイズ（本物の写真と同じくらい圧縮が「効きにくく」なる）
+    var im=sctx.getImageData(0,0,W,H),dd=im.data;
+    for(var i=0;i<dd.length;i+=4){
+      var nz=Math.random()*16-8;
+      dd[i]=Math.min(255,Math.max(0,dd[i]+nz));
+      dd[i+1]=Math.min(255,Math.max(0,dd[i+1]+nz));
+      dd[i+2]=Math.min(255,Math.max(0,dd[i+2]+nz));
+    }
+    sctx.putImageData(im,0,0);
+    refresh();
+  }
+
+  document.getElementById('fpick').addEventListener('change',function(e){
+    var f=e.target.files&&e.target.files[0];if(!f)return;
+    var img=new Image();
+    img.onload=function(){
+      // canvasいっぱいに切り抜き表示（cover）
+      var s=Math.max(W/img.width,H/img.height);
+      var dw=img.width*s,dh=img.height*s;
+      sctx.fillStyle='#000';sctx.fillRect(0,0,W,H);
+      sctx.drawImage(img,(W-dw)/2,(H-dh)/2,dw,dh);
+      URL.revokeObjectURL(img.src);
+      refresh();
+    };
+    img.src=URL.createObjectURL(f);
+  });
+  document.getElementById('bSample').addEventListener('click',drawSample);
+
+  // ---- 実験1：ビット数を減らす ----
+  var q0=document.getElementById('q0'),q1=document.getElementById('q1');
+  var sBits=document.getElementById('sBits'),vBits=document.getElementById('vBits');
+  var oBpp=document.getElementById('oBpp'),oColors=document.getElementById('oColors'),oQRatio=document.getElementById('oQRatio');
+  function colorCount(bits){
+    var n=Math.pow(2,bits*3);
+    if(n>=1e8)return '約'+(n/1e8).toFixed(n<3e8?1:0)+'億';
+    if(n>=1e4)return '約'+Math.round(n/1e4)+'万';
+    return String(n);
+  }
+  function quantize(){
+    var bits=+sBits.value,levels=Math.pow(2,bits),step=255/(levels-1);
+    q0.getContext('2d').drawImage(srcCv,0,0);
+    var ctx=q1.getContext('2d');
+    ctx.drawImage(srcCv,0,0);
+    if(bits<8){
+      var im=ctx.getImageData(0,0,W,H),d=im.data;
+      for(var i=0;i<d.length;i+=4){
+        d[i]=Math.round(d[i]/step)*step;
+        d[i+1]=Math.round(d[i+1]/step)*step;
+        d[i+2]=Math.round(d[i+2]/step)*step;
+      }
+      ctx.putImageData(im,0,0);
+    }
+    vBits.textContent=bits+'ビット';
+    oBpp.innerHTML=(bits*3)+'<small> ビット</small>';
+    oColors.innerHTML=colorCount(bits)+'<small> 色</small>';
+    var pct=Math.round(bits/8*100);
+    oQRatio.innerHTML=pct+'%'+(bits===8?'<small>（そのまま）</small>':'<small>（'+(8/bits===Math.round(8/bits)?'1/'+(8/bits):Math.round(100/pct*10)/10+'分の1')+'）</small>');
+    document.getElementById('qcap').textContent=bits===8?'省いた写真（まだ何も省いていない）':'省いた写真（1色 '+bits+'ビット＝'+levels+'段階）';
+  }
+  sBits.addEventListener('input',quantize);
+
+  // ---- 実験2：JPEG圧縮 ----
+  var j0=document.getElementById('j0'),j1=document.getElementById('j1');
+  var sQ=document.getElementById('sQ'),vQ=document.getElementById('vQ');
+  var oJSize=document.getElementById('oJSize'),oJRatio=document.getElementById('oJRatio'),oJSave=document.getElementById('oJSave');
+  var rawKB=W*H*3/1024;
+  document.getElementById('jRaw').textContent=Math.round(rawKB)+' KB';
+  function jpeg(){
+    var q=+sQ.value;vQ.textContent=q;
+    j0.getContext('2d').drawImage(srcCv,0,0);
+    var url=srcCv.toDataURL('image/jpeg',q/100);
+    var bytes=Math.round((url.length-'data:image/jpeg;base64,'.length)*3/4);
+    var kb=bytes/1024;
+    var img=new Image();
+    img.onload=function(){var c=j1.getContext('2d');c.fillStyle='#000';c.fillRect(0,0,W,H);c.drawImage(img,0,0);};
+    img.src=url;
+    oJSize.innerHTML=(kb<10?kb.toFixed(1):Math.round(kb))+'<small> KB</small>';
+    var ratio=rawKB/kb;
+    oJRatio.textContent='1/'+(ratio<10?ratio.toFixed(1):Math.round(ratio));
+    var save=(1-kb/rawKB)*100;
+    oJSave.textContent=(save>=99?save.toFixed(1):Math.round(save))+'%';
+    document.getElementById('bjpgfill').style.width=Math.max(1.5,kb/rawKB*100)+'%';
+    document.getElementById('bjpglab').textContent=(kb<10?kb.toFixed(1):Math.round(kb))+' KB';
+    document.getElementById('brawlab').textContent=Math.round(rawKB)+' KB';
+    document.getElementById('jcap').textContent='JPEG圧縮後（品質 '+q+'）';
+  }
+  sQ.addEventListener('input',jpeg);
+
+  function refresh(){quantize();jpeg();}
+  drawSample();
+})();
+</script>
+</body>
+</html>

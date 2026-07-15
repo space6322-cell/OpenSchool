@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>体験ワーク｜RGBチャンネル並べ替え＆色づくり</title>
+<style>
+  :root{
+    --ink:#16203a; --mute:#5b677e; --line:#d8deea;
+    --bg:#f4f7fc; --card:#ffffff; --accent:#1d6fd6;
+    --rT:#a32d2d; --rB:#e24b4a; --rBg:#fcebeb;
+    --gT:#3b6d11; --gB:#639922; --gBg:#eaf3de;
+    --bT:#0c447c; --bB:#378add; --bBg:#e6f1fb;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Yu Gothic UI","Meiryo","Hiragino Sans",system-ui,sans-serif;line-height:1.7;padding:24px;}
+  .wrap{max-width:920px;margin:0 auto;}
+  h1{font-size:26px;font-weight:700;margin:0 0 4px;}
+  .sub{color:var(--mute);font-size:15px;margin:0 0 22px;}
+  h2{font-size:21px;font-weight:700;margin:0 0 6px;}
+  .lead{color:var(--mute);font-size:15px;margin:0 0 16px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center;}
+  .cap{font-size:14px;color:var(--mute);margin-top:6px;}
+  canvas{border-radius:8px;border:1px solid var(--line);width:100%;display:block;}
+  .exrow{display:grid;grid-template-columns:1.1fr 2.6fr;gap:14px;align-items:start;margin-bottom:8px;}
+  .ex3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+  .chlab{font-size:15px;font-weight:700;margin-top:6px;}
+  .why{font-size:12px;color:var(--mute);line-height:1.5;}
+  .keyp{font-size:14px;color:var(--mute);margin:8px 0 0;}
+  hr{border:none;border-top:1px solid var(--line);margin:30px 0;}
+  .difrow{display:flex;align-items:center;gap:10px;margin-bottom:14px;font-size:15px;}
+  .dfbtn{font-size:16px;padding:9px 20px;border-radius:10px;border:1px solid var(--line);background:#fff;cursor:pointer;color:var(--mute);}
+  .dfbtn.on{border:2px solid var(--accent);background:#eaf3ff;color:var(--accent);font-weight:700;}
+  .qrow{display:grid;grid-template-columns:1fr 2.6fr;gap:14px;align-items:start;}
+  #board{position:relative;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+  .dcol{background:#fff;border:2px solid transparent;border-radius:12px;padding:8px;text-align:center;box-shadow:0 0 0 1px var(--line);}
+  .dhead{font-size:18px;font-weight:700;margin-bottom:8px;}
+  .ddrop{min-height:104px;display:flex;align-items:center;justify-content:center;border:1px dashed #b9c2d6;border-radius:8px;}
+  .tile{touch-action:none;cursor:grab;width:100%;}
+  .tile canvas{display:block;border-radius:6px;border:1px solid var(--line);}
+  .colnote{font-size:13px;margin-top:5px;color:var(--rT);}
+  #ghost{position:absolute;left:0;top:0;pointer-events:none;display:none;opacity:0.92;z-index:5;}
+  #ghost canvas{border-radius:6px;border:2px solid var(--accent);display:block;}
+  #mfeedback{min-height:48px;font-size:16px;margin-top:12px;}
+  .scorebar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:6px;flex-wrap:wrap;font-size:16px;}
+  .scorebar b{font-size:20px;}
+  .actbtn{font-size:17px;padding:11px 22px;border-radius:10px;border:1px solid var(--line);background:#fff;cursor:pointer;}
+  .slider-row{display:flex;align-items:center;gap:14px;margin-bottom:14px;}
+  .slider-row .lab{width:22px;font-size:18px;font-weight:700;}
+  .slider-row input{flex:1;height:30px;}
+  .slider-row .val{width:42px;text-align:right;font-family:"Consolas",monospace;font-size:18px;}
+  .toolgrid{display:grid;grid-template-columns:1fr 170px;gap:20px;align-items:center;}
+  #swatch{height:120px;border-radius:14px;border:1px solid var(--line);}
+  .outs{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-top:18px;}
+  .out{background:var(--bg);border-radius:10px;padding:12px 14px;}
+  .out .k{font-size:13px;color:var(--mute);margin-bottom:3px;}
+  .out .v{font-family:"Consolas",monospace;font-size:19px;}
+  .out .vbin{font-family:"Consolas",monospace;font-size:15px;letter-spacing:1px;}
+  .h1row{display:flex;align-items:center;gap:12px;}
+  .h1row .dot{width:15px;height:15px;border-radius:50%;flex:none;}
+  .secno{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:30px;border-radius:50%;background:var(--ink);color:#fff;font-size:16px;margin-right:10px;flex:none;}
+  h2{display:flex;align-items:center;}
+  .btn-primary{background:var(--accent);color:#fff;border:1px solid var(--accent);font-weight:700;}
+  .target-card{display:grid;grid-template-columns:1fr 1.4fr;gap:16px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:14px;}
+  .tgt{height:92px;border-radius:10px;border:1px solid var(--line);}
+  .tlab{font-size:14px;color:var(--mute);margin-bottom:6px;}
+  #judge-fb{min-height:26px;font-size:16px;margin-top:10px;}
+  .stars{color:#e8a013;font-size:20px;letter-spacing:2px;font-weight:700;}
+  @media (max-width:620px){ .exrow,.qrow,.target-card{grid-template-columns:1fr;} .toolgrid{grid-template-columns:1fr;} #swatch{height:80px;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="h1row">
+    <span class="dot" style="background:#e24b4a"></span><span class="dot" style="background:#3fae5a"></span><span class="dot" style="background:#378add"></span>
+    <h1>RGBチャンネル並べ替え ＆ 色づくり</h1>
+  </div>
+  <p class="sub">体験ワーク用｜色は赤・緑・青の数字でできている</p>
+  <p style="margin:0 0 22px;"><a href="assyuku.html" style="color:#1d6fd6;font-size:15px;text-decoration:none;">▶ 発展ワーク：圧縮の謎 — どこまで省いてもバレない？</a></p>
+
+  <h2><span class="secno">例</span>まず確認：色を「明るさ（白黒）」で表すと？</h2>
+  <p class="lead">各色を白黒にすると、<b>その色が強い場所ほど白く</b>なる。</p>
+  <div class="exrow">
+    <div class="card"><canvas id="exColor" width="180" height="120"></canvas><div class="cap">もとのカラー</div></div>
+    <div class="ex3">
+      <div class="card"><canvas id="exR" width="150" height="100"></canvas><div class="chlab" style="color:var(--rT)">R（赤）</div><div class="why">赤いリンゴ・黄色い太陽が白い</div></div>
+      <div class="card"><canvas id="exG" width="150" height="100"></canvas><div class="chlab" style="color:var(--gT)">G（緑）</div><div class="why">緑の草・黄色い太陽が白い</div></div>
+      <div class="card"><canvas id="exB" width="150" height="100"></canvas><div class="chlab" style="color:var(--bT)">B（青）</div><div class="why">青い空だけ白い</div></div>
+    </div>
+  </div>
+  <p class="keyp">ポイント：黄色＝赤＋緑なので、RとGの<b>両方</b>で明るい（加法混色の復習）。</p>
+
+  <hr>
+
+  <h2><span class="secno">1</span>クイズ：白黒タイルを R・G・B の列にドラッグ</h2>
+  <p class="lead">カラー写真をヒントに、3枚をドラッグして正しい列へ。入れ替えたら「答え合わせ」。</p>
+  <div class="difrow">
+    <span>難易度：</span>
+    <button class="dfbtn on" id="dEasy">やさしい</button>
+    <button class="dfbtn" id="dHard">むずかしい</button>
+    <button class="dfbtn" id="dExtreme">超むずかしい</button>
+  </div>
+  <div class="qrow">
+    <div class="card"><canvas id="mref" width="180" height="120"></canvas><div class="cap">もとのカラー</div></div>
+    <div id="board">
+      <div class="dcol" data-slot="0"><div class="dhead" style="color:var(--rT)">R（赤）</div><div class="ddrop"></div></div>
+      <div class="dcol" data-slot="1"><div class="dhead" style="color:var(--gT)">G（緑）</div><div class="ddrop"></div></div>
+      <div class="dcol" data-slot="2"><div class="dhead" style="color:var(--bT)">B（青）</div><div class="ddrop"></div></div>
+      <div id="ghost"><canvas width="150" height="100"></canvas></div>
+    </div>
+  </div>
+  <div id="mfeedback"></div>
+  <div class="scorebar">
+    <span>全問正解：<b id="mscore">0 / 0</b></span>
+    <span style="display:flex;gap:10px;"><button class="actbtn btn-primary" id="mcheck">答え合わせ</button><button class="actbtn" id="mnext">次の問題 →</button></span>
+  </div>
+
+  <hr>
+
+  <h2><span class="secno">2</span>色当てチャレンジ（RGBスライダー）</h2>
+  <p class="lead">お題の色を、下のスライダーで再現しよう。10進・2進数が同時に変わります。</p>
+  <div class="target-card">
+    <div>
+      <div class="tlab">お題：<b id="tname" style="color:var(--ink)">オレンジ</b> をつくろう</div>
+      <div class="tgt" id="tswatch"></div>
+    </div>
+    <div>
+      <div class="tlab">スライダーで「きみの色」をお題に近づけて「判定」！</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="actbtn btn-primary" id="judge">判定！</button>
+        <button class="actbtn" id="tnext">次のお題 →</button>
+        <button class="actbtn" id="tshow" style="font-size:14px;">答えを見る</button>
+      </div>
+      <div id="judge-fb"></div>
+    </div>
+  </div>
+  <div class="toolgrid">
+    <div>
+      <div class="slider-row"><span class="lab" style="color:var(--rT)">R</span><input type="range" id="sr" min="0" max="255" value="255"><span class="val" id="vr">255</span></div>
+      <div class="slider-row"><span class="lab" style="color:var(--gT)">G</span><input type="range" id="sg" min="0" max="255" value="128"><span class="val" id="vg">128</span></div>
+      <div class="slider-row"><span class="lab" style="color:var(--bT)">B</span><input type="range" id="sb" min="0" max="255" value="0"><span class="val" id="vb">0</span></div>
+    </div>
+    <div><div id="swatch"></div><div class="cap" style="text-align:center;">きみの色</div></div>
+  </div>
+  <div class="outs">
+    <div class="out"><div class="k">10進（0〜255）</div><div class="v" id="odec">255, 128, 0</div></div>
+    <div class="out" style="display:none;"><div class="k">16進カラーコード</div><div class="v" id="ohex">#FF8000</div></div>
+    <div class="out"><div class="k">2進（8ビット×3）</div><div class="vbin" id="obin">11111111<br>10000000<br>00000000</div></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var SCENES=[
+    {d:'e',bg:{t:'rgb(120,175,255)',b:'rgb(95,175,65)'},shapes:[{t:'c',x:0.78,y:0.30,r:0.14,c:'rgb(255,210,45)'},{t:'c',x:0.34,y:0.64,r:0.17,c:'rgb(225,45,45)'},{t:'c',x:0.27,y:0.22,r:0.10,c:'rgb(245,245,245)'}]},
+    {d:'e',bg:{t:'rgb(72,82,98)',b:'rgb(72,82,98)'},shapes:[{t:'r',x:0.40,y:0.16,w:0.20,h:0.68,c:'rgb(38,42,50)'},{t:'c',x:0.50,y:0.30,r:0.075,c:'rgb(230,40,40)'},{t:'c',x:0.50,y:0.50,r:0.075,c:'rgb(255,205,45)'},{t:'c',x:0.50,y:0.70,r:0.075,c:'rgb(60,200,95)'}]},
+    {d:'e',bg:{t:'rgb(95,170,235)',b:'rgb(232,205,128)'},shapes:[{t:'c',x:0.78,y:0.24,r:0.11,c:'rgb(255,228,70)'},{t:'r',x:0.10,y:0.66,w:0.18,h:0.12,c:'rgb(220,60,55)'},{t:'r',x:0.34,y:0.68,w:0.16,h:0.10,c:'rgb(245,245,245)'}]},
+    {d:'e',bg:{t:'rgb(135,185,250)',b:'rgb(80,160,70)'},shapes:[{t:'c',x:0.25,y:0.62,r:0.10,c:'rgb(225,55,55)'},{t:'c',x:0.50,y:0.66,r:0.10,c:'rgb(255,215,60)'},{t:'c',x:0.74,y:0.60,r:0.09,c:'rgb(245,245,245)'}]},
+    {d:'h',bg:{t:'rgb(228,222,206)',b:'rgb(228,222,206)'},shapes:[{t:'r',x:0.44,y:0.26,w:0.12,h:0.09,c:'rgb(70,150,55)'},{t:'c',x:0.34,y:0.55,r:0.15,c:'rgb(125,45,160)'},{t:'c',x:0.67,y:0.58,r:0.12,c:'rgb(245,215,55)'}]},
+    {d:'h',bg:{t:'rgb(22,30,62)',b:'rgb(22,30,62)'},shapes:[{t:'c',x:0.72,y:0.28,r:0.12,c:'rgb(245,235,140)'},{t:'r',x:0.16,y:0.58,w:0.24,h:0.10,c:'rgb(205,55,50)'},{t:'r',x:0.18,y:0.68,w:0.20,h:0.16,c:'rgb(235,235,235)'}]},
+    {d:'h',bg:{t:'rgb(245,242,232)',b:'rgb(245,242,232)'},shapes:[{t:'c',x:0.27,y:0.45,r:0.13,c:'rgb(240,150,175)'},{t:'c',x:0.55,y:0.55,r:0.13,c:'rgb(180,160,225)'},{t:'c',x:0.80,y:0.42,r:0.12,c:'rgb(150,220,180)'}]},
+    {d:'h',bg:{t:'rgb(180,205,225)',b:'rgb(150,130,95)'},shapes:[{t:'c',x:0.30,y:0.40,r:0.14,c:'rgb(225,120,45)'},{t:'c',x:0.62,y:0.46,r:0.12,c:'rgb(190,70,55)'},{t:'r',x:0.74,y:0.60,w:0.14,h:0.16,c:'rgb(120,90,60)'}]},
+    {d:'e',bg:{t:'rgb(245,140,70)',b:'rgb(40,90,170)'},shapes:[{t:'c',x:0.50,y:0.35,r:0.11,c:'rgb(255,225,110)'},{t:'r',x:0.62,y:0.62,w:0.16,h:0.07,c:'rgb(240,240,240)'}]},
+    {d:'e',bg:{t:'rgb(70,155,75)',b:'rgb(80,150,225)'},shapes:[{t:'c',x:0.30,y:0.30,r:0.09,c:'rgb(230,55,50)'},{t:'c',x:0.72,y:0.35,r:0.08,c:'rgb(255,215,60)'},{t:'r',x:0.44,y:0.70,w:0.14,h:0.10,c:'rgb(240,240,240)'}]},
+    {d:'e',bg:{t:'rgb(150,200,250)',b:'rgb(250,245,235)'},shapes:[{t:'c',x:0.28,y:0.60,r:0.11,c:'rgb(220,40,60)'},{t:'c',x:0.55,y:0.66,r:0.08,c:'rgb(70,90,200)'},{t:'r',x:0.68,y:0.50,w:0.14,h:0.09,c:'rgb(80,170,70)'}]},
+    {d:'h',bg:{t:'rgb(200,225,250)',b:'rgb(190,220,170)'},shapes:[{t:'c',x:0.32,y:0.32,r:0.12,c:'rgb(245,190,210)'},{t:'c',x:0.62,y:0.40,r:0.10,c:'rgb(245,190,210)'},{t:'r',x:0.44,y:0.55,w:0.10,h:0.30,c:'rgb(120,90,70)'}]},
+    {d:'h',bg:{t:'rgb(120,215,225)',b:'rgb(230,215,180)'},shapes:[{t:'c',x:0.30,y:0.62,r:0.12,c:'rgb(240,130,90)'},{t:'c',x:0.66,y:0.34,r:0.10,c:'rgb(220,80,180)'}]},
+    {d:'h',bg:{t:'rgb(235,225,210)',b:'rgb(235,225,210)'},shapes:[{t:'c',x:0.28,y:0.48,r:0.13,c:'rgb(170,120,80)'},{t:'c',x:0.56,y:0.58,r:0.11,c:'rgb(140,210,170)'},{t:'c',x:0.79,y:0.42,r:0.10,c:'rgb(150,60,90)'}]},
+    {d:'x',bg:{t:'rgb(235,235,235)',b:'rgb(215,215,215)'},shapes:[{t:'c',x:0.25,y:0.45,r:0.13,c:'rgb(40,200,215)'},{t:'c',x:0.52,y:0.60,r:0.13,c:'rgb(215,45,190)'},{t:'c',x:0.78,y:0.40,r:0.12,c:'rgb(240,220,50)'}]},
+    {d:'x',bg:{t:'rgb(200,200,200)',b:'rgb(200,200,200)'},shapes:[{t:'c',x:0.25,y:0.50,r:0.14,c:'rgb(205,160,160)'},{t:'c',x:0.50,y:0.42,r:0.13,c:'rgb(160,205,160)'},{t:'c',x:0.76,y:0.55,r:0.13,c:'rgb(160,160,205)'}]},
+    {d:'x',bg:{t:'rgb(20,24,34)',b:'rgb(20,24,34)'},shapes:[{t:'r',x:0.35,y:0.20,w:0.30,h:0.60,c:'rgb(45,50,64)'},{t:'c',x:0.28,y:0.35,r:0.07,c:'rgb(255,70,170)'},{t:'c',x:0.70,y:0.30,r:0.07,c:'rgb(70,220,230)'},{t:'c',x:0.50,y:0.65,r:0.08,c:'rgb(255,160,50)'}]},
+    {d:'x',bg:{t:'rgb(150,150,150)',b:'rgb(150,150,150)'},shapes:[{t:'c',x:0.27,y:0.45,r:0.13,c:'rgb(250,225,225)'},{t:'c',x:0.53,y:0.58,r:0.12,c:'rgb(225,250,225)'},{t:'c',x:0.78,y:0.42,r:0.12,c:'rgb(225,225,250)'}]}
+  ];
+  var EXPL=[
+    'Rチャンネル：赤い物が白い。黄色（赤＋緑）や紫（赤＋青）も赤を含むので明るい。',
+    'Gチャンネル：緑の物が白い。黄色（赤＋緑）も緑を含むので明るい。赤・青・紫は暗め。',
+    'Bチャンネル：青い物が白い。紫（赤＋青）も青を含むので明るい。黄色や赤は暗い。'
+  ];
+  var CHNAME=['R（赤）','G（緑）','B（青）'];
+  function draw(ctx,sc,W,H){
+    ctx.fillStyle=sc.bg.t;ctx.fillRect(0,0,W,Math.round(H*0.55));
+    ctx.fillStyle=sc.bg.b;ctx.fillRect(0,Math.round(H*0.55),W,H-Math.round(H*0.55));
+    for(var i=0;i<sc.shapes.length;i++){var s=sc.shapes[i];ctx.fillStyle=s.c;
+      if(s.t==='c'){ctx.beginPath();ctx.arc(s.x*W,s.y*H,s.r*W,0,Math.PI*2);ctx.fill();}
+      else ctx.fillRect(s.x*W,s.y*H,s.w*W,s.h*H);}
+  }
+  function channelOf(src,ch){
+    var w=src.width,h=src.height,off=document.createElement('canvas');off.width=w;off.height=h;
+    var img=src.getContext('2d').getImageData(0,0,w,h),d=img.data;
+    for(var i=0;i<d.length;i+=4){var v=d[i+ch];d[i]=v;d[i+1]=v;d[i+2]=v;}
+    off.getContext('2d').putImageData(img,0,0);return off;
+  }
+  function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
+
+  var exC=document.getElementById('exColor');
+  draw(exC.getContext('2d'),SCENES[0],exC.width,exC.height);
+  ['exR','exG','exB'].forEach(function(id,ch){var cv=document.getElementById(id);cv.getContext('2d').drawImage(channelOf(exC,ch),0,0,cv.width,cv.height);});
+
+  var mref=document.getElementById('mref'),mrefCtx=mref.getContext('2d');
+  var board=document.getElementById('board'),ghost=document.getElementById('ghost'),gctx=ghost.firstElementChild.getContext('2d');
+  var cols=board.querySelectorAll('.dcol');
+  var fb=document.getElementById('mfeedback'),scoreEl=document.getElementById('mscore');
+  var slots=[0,1,2],checked=false,correct=0,total=0,diff='e';
+  var TW=150,TH=100;
+
+  function pool(){var p=[];for(var i=0;i<SCENES.length;i++) if(SCENES[i].d===diff)p.push(i);return p;}
+  function render(){
+    for(var i=0;i<3;i++){
+      var drop=cols[i].querySelector('.ddrop');drop.innerHTML='';
+      cols[i].style.borderColor='transparent';
+      var ch=slots[i];
+      var tile=document.createElement('div');tile.className='tile';tile.setAttribute('data-slot',i);tile.setAttribute('data-ch',ch);
+      var cv=document.createElement('canvas');cv.width=TW;cv.height=TH;cv.style.width='100%';
+      cv.getContext('2d').drawImage(channelOf(mref,ch),0,0,TW,TH);
+      tile.appendChild(cv);drop.appendChild(tile);
+      tile.addEventListener('pointerdown',onDown);
+    }
+  }
+  var queue=[],qDiff='',lastIdx=-1;
+  function nextScene(){
+    if(qDiff!==diff){queue=[];qDiff=diff;}
+    if(queue.length===0){
+      queue=shuffle(pool());
+      // 前回の最後と同じ問題が連続しないように
+      if(queue.length>1&&queue[0]===lastIdx){queue.push(queue.shift());}
+    }
+    lastIdx=queue.shift();return lastIdx;
+  }
+  function newQ(){
+    checked=false;
+    var sceneIdx=nextScene();
+    draw(mrefCtx,SCENES[sceneIdx],mref.width,mref.height);
+    slots=shuffle([0,1,2]);
+    if(slots[0]===0&&slots[1]===1&&slots[2]===2){var t=slots[0];slots[0]=slots[1];slots[1]=t;}
+    render();
+    fb.innerHTML='<span style="color:var(--mute)">タイルをドラッグして、正しい列に置こう。</span>';
+  }
+
+  var drag=null,srcSlot=0;
+  function onDown(e){
+    if(checked)return;e.preventDefault();
+    var tile=e.currentTarget;srcSlot=+tile.getAttribute('data-slot');var ch=+tile.getAttribute('data-ch');
+    gctx.clearRect(0,0,TW,TH);gctx.drawImage(channelOf(mref,ch),0,0,TW,TH);
+    ghost.style.display='block';drag=tile;tile.style.visibility='hidden';moveGhost(e);
+    window.addEventListener('pointermove',onMove);window.addEventListener('pointerup',onUp);
+  }
+  function moveGhost(e){var r=board.getBoundingClientRect();ghost.style.left=(e.clientX-r.left-TW/2)+'px';ghost.style.top=(e.clientY-r.top-TH/2)+'px';}
+  function onMove(e){if(drag)moveGhost(e);}
+  function onUp(e){
+    window.removeEventListener('pointermove',onMove);window.removeEventListener('pointerup',onUp);
+    ghost.style.display='none';
+    var target=null;
+    for(var i=0;i<3;i++){var r=cols[i].getBoundingClientRect();if(e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom){target=i;break;}}
+    if(target!==null&&target!==srcSlot){var tmp=slots[target];slots[target]=slots[srcSlot];slots[srcSlot]=tmp;}
+    drag=null;render();
+  }
+  function check(){
+    if(checked)return;checked=true;total++;var per=0;
+    for(var i=0;i<3;i++){var ok=slots[i]===i;if(ok)per++;
+      cols[i].style.borderColor=ok?'#639922':'#e24b4a';
+      if(!ok){var note=document.createElement('div');note.className='colnote';note.textContent='本当は '+CHNAME[slots[i]];cols[i].appendChild(note);}
+    }
+    if(per===3)correct++;scoreEl.textContent=correct+' / '+total;
+    var head=per===3?'<span style="color:#27500a;font-weight:700;">○ 全部正解！</span>':'<span style="font-weight:700;">'+per+' / 3 正解</span>';
+    fb.innerHTML=head+'<br><span style="color:var(--mute);font-size:14px;">'+EXPL.join(' ／ ')+'</span>';
+  }
+  document.getElementById('mcheck').addEventListener('click',check);
+  document.getElementById('mnext').addEventListener('click',newQ);
+  var bE=document.getElementById('dEasy'),bH=document.getElementById('dHard'),bX=document.getElementById('dExtreme');
+  function setDiff(d,btn){diff=d;[bE,bH,bX].forEach(function(b){b.classList.remove('on');});btn.classList.add('on');newQ();}
+  bE.addEventListener('click',function(){setDiff('e',bE);});
+  bH.addEventListener('click',function(){setDiff('h',bH);});
+  bX.addEventListener('click',function(){setDiff('x',bX);});
+  newQ();
+
+  var sr=document.getElementById('sr'),sg=document.getElementById('sg'),sb=document.getElementById('sb');
+  var vr=document.getElementById('vr'),vg=document.getElementById('vg'),vb=document.getElementById('vb');
+  var sw=document.getElementById('swatch'),odec=document.getElementById('odec'),ohex=document.getElementById('ohex'),obin=document.getElementById('obin');
+  function hx(v){return v.toString(16).padStart(2,'0').toUpperCase();}
+  function bn(v){return v.toString(2).padStart(8,'0');}
+  function upd(){var r=+sr.value,g=+sg.value,b=+sb.value;vr.textContent=r;vg.textContent=g;vb.textContent=b;
+    sw.style.background='rgb('+r+','+g+','+b+')';odec.textContent=r+', '+g+', '+b;ohex.textContent='#'+hx(r)+hx(g)+hx(b);obin.innerHTML=bn(r)+'<br>'+bn(g)+'<br>'+bn(b);}
+  sr.oninput=upd;sg.oninput=upd;sb.oninput=upd;upd();
+
+  // ---- 色当てチャレンジ ----
+  var TG=[
+    {n:'オレンジ',c:[255,128,0]},
+    {n:'空色（スカイブルー）',c:[135,206,235]},
+    {n:'黄色',c:[255,255,0]},
+    {n:'紫',c:[128,0,128]},
+    {n:'ピンク',c:[255,105,180]},
+    {n:'黄緑',c:[154,205,50]},
+    {n:'茶色',c:[139,69,19]},
+    {n:'グレー',c:[128,128,128]},
+    {n:'白',c:[255,255,255]},
+    {n:'赤',c:[255,0,0]},
+    {n:'シアン（水色っぽい青緑）',c:[0,255,255]},
+    {n:'紺色（ネイビー）',c:[0,0,128]},
+    {n:'はだ色',c:[255,220,180]},
+    {n:'チョコレート色',c:[90,50,30]},
+    {n:'深緑（ふかみどり）',c:[0,100,0]}
+  ];
+  var ti=0,tname=document.getElementById('tname'),tsw=document.getElementById('tswatch'),jfb=document.getElementById('judge-fb');
+  function setT(i){ti=i;var t=TG[ti];tname.textContent=t.n;tsw.style.background='rgb('+t.c.join(',')+')';jfb.innerHTML='';}
+  function answerText(){var c=TG[ti].c;return 'R '+c[0]+' / G '+c[1]+' / B '+c[2];}
+  function judge(){
+    var c=TG[ti].c,r=+sr.value,g=+sg.value,b=+sb.value;
+    var dr=r-c[0],dg=g-c[1],db=b-c[2];
+    var d=Math.abs(dr)+Math.abs(dg)+Math.abs(db);
+    var html;
+    if(d<=30){html='<span class="stars">★★★</span> 完ぺき！色彩マスター！　正解は '+answerText();}
+    else if(d<=90){html='<span class="stars">★★☆</span> すごい、あと少し！';}
+    else if(d<=180){html='<span class="stars">★☆☆</span> おしい！';}
+    else{html='<b>もう少し！</b>';}
+    if(d>30){
+      var ds=[Math.abs(dr),Math.abs(dg),Math.abs(db)],ch=ds.indexOf(Math.max.apply(null,ds));
+      var name=['赤（R）','緑（G）','青（B）'][ch],dir=[dr,dg,db][ch]>0?'下げて':'上げて';
+      html+='<span style="color:var(--mute);font-size:14px;">　ヒント：'+name+'をもっと'+dir+'みよう</span>';
+    }
+    jfb.innerHTML=html;
+  }
+  document.getElementById('judge').addEventListener('click',judge);
+  document.getElementById('tnext').addEventListener('click',function(){setT((ti+1)%TG.length);});
+  document.getElementById('tshow').addEventListener('click',function(){jfb.innerHTML='<span style="color:var(--mute)">答え：'+answerText()+'</span>';});
+  setT(0);
+})();
+</script>
+</body>
+</html>
