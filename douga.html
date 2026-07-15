@@ -81,11 +81,16 @@
   }
   function updateLabels(){
     var s=srcSize(),perFrame=s[0]*s[1]*3; // 24ビット=3バイト/画素
+    var dur=(mode==='video'&&isFinite(video.duration))?video.duration:null;
     panels.forEach(function(p,i){
       p.lab.innerHTML=p.fps+' fps'+(i===0?'<span>（スマホの動画とほぼ同じ）</span>':'<span>1秒に'+p.fps+'枚</span>');
-      p.dat.innerHTML='非圧縮データ量: <b>'+fmtMB(perFrame*p.fps)+'/秒</b>（1枚 '+fmtMB(perFrame)+' × '+p.fps+'）';
+      var total=dur!==null
+        ? '動画ぜんぶ（'+dur.toFixed(1)+'秒）を非圧縮で送ると <b>'+fmtMB(perFrame*p.fps*dur)+'</b>'
+        : '10秒間なら <b>'+fmtMB(perFrame*p.fps*10)+'</b>';
+      p.dat.innerHTML='非圧縮データ量: <b>'+fmtMB(perFrame*p.fps)+'/秒</b>（1枚 '+fmtMB(perFrame)+' × '+p.fps+'）<br>'+total;
     });
     var t='解像度 <b>'+s[0]+'×'+s[1]+'</b>｜非圧縮1枚 <b>'+fmtMB(perFrame)+'</b>（'+s[0]+'×'+s[1]+'×3バイト）';
+    if(dur!==null)t+='｜長さ <b>'+dur.toFixed(1)+'秒</b>';
     if(fileMB!==null)t+='｜実際のファイル <b>'+fileMB+'</b> ← 圧縮のおかげでこんなに小さい！';
     info.innerHTML=t;
   }
