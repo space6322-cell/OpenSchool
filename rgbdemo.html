@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>体験ワーク｜RGB分解・通信・合成 デモ</title>
+<style>
+  :root{--bg:#0f1320;--ink:#f4f6fb;--mute:#9aa6bd;--panel:#1b2236;--r:#ff5a5a;--g:#35d084;--b:#4d8dff;--y:#ffd240;--accent:#4d8dff;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Yu Gothic UI","Meiryo","Hiragino Sans",system-ui,sans-serif;line-height:1.6;padding:16px;}
+  .wrap{max-width:1000px;margin:0 auto;}
+  h1{font-size:22px;margin:0 0 2px;}
+  .sub{color:var(--mute);font-size:14px;margin:0 0 14px;}
+  .sub a{color:var(--b);text-decoration:none;}
+  #stage{width:100%;display:block;background:var(--bg);border:1px solid #2a3352;border-radius:12px;touch-action:manipulation;}
+  .bar{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0;align-items:center;}
+  button{font-size:16px;padding:11px 18px;border-radius:10px;border:1px solid #2a3352;background:var(--panel);color:var(--ink);cursor:pointer;}
+  button.primary{background:var(--accent);border-color:var(--accent);font-weight:700;}
+  button:disabled{opacity:0.35;cursor:default;}
+  .spacer{flex:1;}
+  .steps{display:flex;gap:5px;margin:2px 0 10px;}
+  .steps div{flex:1;height:6px;border-radius:3px;background:#2a3352;}
+  .steps div.on{background:var(--accent);}
+  .note{color:var(--mute);font-size:13px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>RGB 分解・通信・合成 デモ</h1>
+  <p class="sub">写真が「0と1」で送られて、完全に元どおりになるまで｜<a href="index.html">← クイズにもどる</a></p>
+  <div class="steps" id="steps"></div>
+  <canvas id="stage" width="960" height="600"></canvas>
+  <div class="bar">
+    <button id="prev">◀ 戻る</button>
+    <button id="next" class="primary">次へ ▶</button>
+    <button id="replay">↻ もう一度</button>
+    <span class="spacer"></span>
+    <button id="grayBtn">白黒⇄色つき</button>
+    <button id="sample">別のサンプル</button>
+    <button id="pick">自分の写真を選ぶ</button>
+    <input type="file" id="file" accept="image/*" style="display:none">
+  </div>
+  <p class="note">※写真はこのページの中だけで処理され、どこにも送信されません。キーボードでも操作できます（SPACE:次へ／←:戻る／R:再生）。</p>
+</div>
+
+<script>
+(function(){
+  var W=960,H=600;
+  var cv=document.getElementById('stage'),ctx=cv.getContext('2d');
+  var BG='#0f1320',INK='#f4f6fb',MUTE='#9aa6bd',PANEL='#1b2236';
+  var RC='#ff5a5a',GC='#35d084',BC='#4d8dff',YC='#ffd240';
+  var CH=[['R（赤）',RC],['G（緑）',GC],['B（青）',BC]];
+  var TITLES=[
+    '1. 元の写真',
+    '2. 赤・緑・青の3枚に分解',
+    '3. 各色を「0と1」（2進数）に変換',
+    '4. 送信：0と1を送って、受信側へ',
+    '5. 受信→重ね合わせ：赤(R)',
+    '5. 受信→重ね合わせ：赤 + 緑(G)',
+    '5. 受信→重ね合わせ：赤 + 緑 + 青(B)＝復元！',
+    '6. 送る前と送った後 — 完全に一致！'
+  ];
+  var N=TITLES.length;
+  var scene=0,grayMode=false,animT0=0,sampleIdx=0;
+  var img=null,chan=[null,null,null],chanG=[null,null,null],pix=[0,0,0],identical=false;
+
+  // ---- サンプル画像（内蔵・手描き） ----
+  var SAMPLES=[
+    function(c){var x=c.getContext('2d');grad(x,'#78b4ff','#5faf41',c);ball(x,c,0.76,0.28,0.13,'#ffd22d');ball(x,c,0.32,0.62,0.16,'#e12d2d');ball(x,c,0.24,0.20,0.09,'#f5f5f5');ball(x,c,0.55,0.70,0.09,'#ff8b1f');},
+    function(c){var x=c.getContext('2d');grad(x,'#485262','#485262',c);var w=c.width,h=c.height;x.fillStyle='#262a32';x.fillRect(w*0.40,h*0.14,w*0.20,h*0.72);ball(x,c,0.50,0.28,0.075,'#e62828');ball(x,c,0.50,0.48,0.075,'#ffcd2d');ball(x,c,0.50,0.68,0.075,'#3cc85f');},
+    function(c){var x=c.getContext('2d');grad(x,'#f58c46','#285aaa',c);ball(x,c,0.5,0.32,0.11,'#ffe16e');var w=c.width,h=c.height;x.fillStyle='#f0f0f0';x.fillRect(w*0.60,h*0.60,w*0.16,h*0.06);}
+  ];
+  function grad(x,t,b,c){var g=x.createLinearGradient(0,0,0,c.height);g.addColorStop(0,t);g.addColorStop(1,b);x.fillStyle=g;x.fillRect(0,0,c.width,c.height);}
+  function ball(x,c,px,py,pr,col){x.fillStyle=col;x.beginPath();x.arc(px*c.width,py*c.height,pr*c.width,0,Math.PI*2);x.fill();}
+
+  function mkCanvas(w,h){var c=document.createElement('canvas');c.width=w;c.height=h;return c;}
+
+  function setImage(source){
+    var mw=720,sw=source.width,sh=source.height,sc=Math.min(1,mw/Math.max(sw,sh));
+    var w=Math.max(1,Math.round(sw*sc)),h=Math.max(1,Math.round(sh*sc));
+    img=mkCanvas(w,h);img.getContext('2d').drawImage(source,0,0,w,h);
+    var src=img.getContext('2d').getImageData(0,0,w,h);
+    for(var ch=0;ch<3;ch++){
+      var col=mkCanvas(w,h),gry=mkCanvas(w,h);
+      var dc=col.getContext('2d').createImageData(w,h),dg=gry.getContext('2d').createImageData(w,h);
+      for(var i=0;i<src.data.length;i+=4){
+        var v=src.data[i+ch];
+        dc.data[i]=ch===0?v:0;dc.data[i+1]=ch===1?v:0;dc.data[i+2]=ch===2?v:0;dc.data[i+3]=255;
+        dg.data[i]=v;dg.data[i+1]=v;dg.data[i+2]=v;dg.data[i+3]=255;
+      }
+      col.getContext('2d').putImageData(dc,0,0);gry.getContext('2d').putImageData(dg,0,0);
+      chan[ch]=col;chanG[ch]=gry;
+    }
+    // 注目画素（中央付近）
+    var cx=Math.floor(w/2),cy2=Math.floor(h*0.4),o=(cy2*w+cx)*4;
+    pix=[src.data[o],src.data[o+1],src.data[o+2]];
+    // 復元＝3チャンネルの合算が元画像と全画素一致するかを実測
+    var dR=chan[0].getContext('2d').getImageData(0,0,w,h).data,
+        dGr=chan[1].getContext('2d').getImageData(0,0,w,h).data,
+        dB=chan[2].getContext('2d').getImageData(0,0,w,h).data;
+    identical=true;
+    for(var j=0;j<src.data.length;j+=4){
+      if(src.data[j]!==dR[j]||src.data[j+1]!==dGr[j+1]||src.data[j+2]!==dB[j+2]){identical=false;break;}
+    }
+    scene=0;replay();
+  }
+  function loadSample(i){var c=mkCanvas(720,480);SAMPLES[i%SAMPLES.length](c);setImage(c);}
+
+  // ---- 描画ヘルパー ----
+  function text(t,size,color,x,y,center,bold,mono){
+    ctx.fillStyle=color;ctx.font=(bold?'700 ':'')+size+'px '+(mono?'Consolas,monospace':'"Yu Gothic UI","Meiryo",sans-serif');
+    ctx.textAlign=center?'center':'left';ctx.textBaseline='middle';ctx.fillText(t,x,y);
+  }
+  function fitRect(iw,ih,maxw,maxh){var s=Math.min(maxw/iw,maxh/ih);return[iw*s,ih*s];}
+  function drawImg(source,cx,cy,maxw,maxh,label,lcol){
+    var d=fitRect(source.width,source.height,maxw,maxh);
+    ctx.drawImage(source,cx-d[0]/2,cy-d[1]/2,d[0],d[1]);
+    ctx.strokeStyle='#2a3352';ctx.strokeRect(cx-d[0]/2,cy-d[1]/2,d[0],d[1]);
+    if(label)text(label,17,lcol||MUTE,cx,cy+d[1]/2+20,true,true);
+    return d;
+  }
+  function layer(i){return grayMode?chanG[i]:chan[i];}
+  function bin8(v){var s=v.toString(2);while(s.length<8)s='0'+s;return s;}
+  function easer(t){return t<0?0:t>1?1:1-Math.pow(1-t,3);}
+  function elapsed(){return(performance.now()-animT0)/1000;}
+
+  // ---- 各シーン ----
+  function sOriginal(){drawImg(img,W/2,H*0.52,W*0.66,H*0.7,'元の写真');}
+  function sSplit(){
+    var t=easer(elapsed()/1.6);
+    var xs=[W*0.22,W*0.5,W*0.78],cy2=H*0.52;
+    if(t<1){ctx.globalAlpha=1-t;drawImg(img,W/2,cy2,W*0.5,H*0.55);ctx.globalAlpha=1;}
+    for(var i=0;i<3;i++){
+      var x=W/2+(xs[i]-W/2)*t;
+      drawImg(layer(i),x,cy2,W*0.26,H*0.5,t>0.95?CH[i][0]:'',CH[i][1]);
+    }
+    if(t>=1)text(grayMode?'1枚の写真は、3色の明るさの組み合わせ（白黒＝明るさの値）':'1枚の写真は、3色の明るさの組み合わせ（画面の光の色）',17,MUTE,W/2,H-38,true);
+  }
+  function marker(cx,cy,d,src){
+    var mx=cx-d[0]/2+d[0]*0.5,my=cy-d[1]/2+d[1]*0.4;
+    ctx.strokeStyle=YC;ctx.lineWidth=2;ctx.strokeRect(mx-5,my-5,10,10);ctx.lineWidth=1;
+  }
+  function sBinary(){
+    var xs=[W*0.17,W*0.42,W*0.67],ty=H*0.24;
+    for(var i=0;i<3;i++){var d=drawImg(layer(i),xs[i],ty,W*0.21,H*0.3,CH[i][0],CH[i][1]);marker(xs[i],ty,d);}
+    text('分解した3枚。同じ位置の画素（黄色）に注目',15,MUTE,W*0.42,ty+H*0.19,true);
+    text('注目した画素の色を 0と1（2進数）に変換',22,INK,W*0.09,H*0.52,false,true);
+    text('コンピュータは「0と1」しか使えないから',14,MUTE,W*0.09,H*0.575);
+    var rows=[['R（赤の明るさ）',pix[0],RC],['G（緑の明るさ）',pix[1],GC],['B（青の明るさ）',pix[2],BC]];
+    for(var j=0;j<3;j++){
+      var y=H*0.65+j*52;
+      ctx.fillStyle=PANEL;ctx.fillRect(W*0.08,y-20,W*0.84,42);
+      text(rows[j][0],17,rows[j][2],W*0.10,y,false,true);
+      text(String(rows[j][1]),20,INK,W*0.36,y,false,true,true);
+      text('→',18,MUTE,W*0.44,y);
+      text(bin8(rows[j][1]).split('').join(' '),22,rows[j][2],W*0.50,y,false,true,true);
+    }
+    text('8個の0と1（8ビット）× 3色 = 24個。これを送る。',17,YC,W*0.09,H*0.65+3*52+8,false,true);
+  }
+  function sSend(){
+    var t=elapsed(),dur=5,p=Math.min(1,t/dur);
+    var lx=W*0.16,rx=W*0.84,cy2=H*0.45;
+    for(var i=0;i<3;i++){
+      var yy=cy2+(i-1)*H*0.24;
+      drawImg(layer(i),lx,yy,W*0.18,H*0.2);
+      if(p>=(i+1)/3-0.01)drawImg(layer(i),rx,yy,W*0.18,H*0.2);
+      else{ctx.strokeStyle='#2a3352';ctx.strokeRect(rx-W*0.09,yy-H*0.1,W*0.18,H*0.2);}
+    }
+    text('送信側（あなた）',16,RC,lx,H*0.86,true,true);
+    text('受信側（友だち）',16,GC,rx,H*0.86,true,true);
+    // 0/1 の流れ
+    var gx0=W*0.28,gx1=W*0.72;
+    text('0 と 1 が流れる →',14,MUTE,W/2,H*0.12,true);
+    ctx.font='700 20px Consolas,monospace';ctx.textAlign='center';
+    for(var k=0;k<26;k++){
+      var xx=gx0+((k*53+Math.floor(t*260))%(gx1-gx0));
+      var lane=k%3,yb=H*0.22+lane*H*0.24;
+      ctx.fillStyle=[RC,GC,BC][lane];
+      ctx.fillText(((k*7+lane)%2),xx,yb);
+    }
+    if(p>=1)text('全部届いた！ → 次へ',18,YC,W/2,H-30,true,true);
+  }
+  function sOverlay(upto){
+    var t=easer(elapsed()/1.2);
+    var hx=W*0.14,cx2=W*0.58,cy2=H*0.5;
+    text('受信した0と1を',15,MUTE,hx-W*0.06,cy2-H*0.10);
+    text('RGBに戻して重ねる',15,MUTE,hx-W*0.06,cy2-H*0.055);
+    for(var i=0;i<3;i++){
+      var on=i<=upto;
+      ctx.fillStyle=on?[RC,GC,BC][i]:'#2a3352';
+      ctx.beginPath();ctx.arc(hx-W*0.045,cy2+H*0.03+i*34,11,0,Math.PI*2);ctx.fill();
+      text(['R  赤','G  緑','B  青'][i],15,on?INK:MUTE,hx-W*0.02,cy2+H*0.03+i*34,false,on);
+    }
+    // 合成描画（offscreenで加算合成）
+    var d=fitRect(img.width,img.height,W*0.52,H*0.66);
+    var off=mkCanvas(Math.round(d[0]),Math.round(d[1]));var ox=off.getContext('2d');
+    ox.globalCompositeOperation='lighter';
+    for(var j=0;j<=upto;j++){
+      if(j===upto&&t<1){ // 最後の1枚はスライドイン
+        ox.globalAlpha=1;ox.drawImage(chan[j],(1-t)*-off.width*0.4,0,off.width,off.height);
+      } else ox.drawImage(chan[j],0,0,off.width,off.height);
+    }
+    ctx.drawImage(off,cx2-d[0]/2,cy2-d[1]/2);
+    ctx.strokeStyle='#2a3352';ctx.strokeRect(cx2-d[0]/2,cy2-d[1]/2,d[0],d[1]);
+    if(upto===2&&t>=1){
+      text('受信した0と1から、元の色がよみがえった！',21,GC,W/2,H-64,true,true);
+      text('→ 送る前の写真と比べてみよう（次へ）',15,MUTE,W/2,H-32,true);
+    }
+  }
+  function sCompare(){
+    drawImg(img,W*0.28,H*0.48,W*0.4,H*0.58,'送る前の写真',MUTE);
+    var d=fitRect(img.width,img.height,W*0.4,H*0.58);
+    var off=mkCanvas(Math.round(d[0]),Math.round(d[1]));var ox=off.getContext('2d');
+    ox.globalCompositeOperation='lighter';
+    for(var j=0;j<3;j++)ox.drawImage(chan[j],0,0,off.width,off.height);
+    ctx.drawImage(off,W*0.72-d[0]/2,H*0.48-d[1]/2);
+    ctx.strokeStyle='#2a3352';ctx.strokeRect(W*0.72-d[0]/2,H*0.48-d[1]/2,d[0],d[1]);
+    text('送った後の写真',17,GC,W*0.72,H*0.48+d[1]/2+20,true,true);
+    text(identical?'まったく同じ！ 相違なし（1画素もズレていない）':'ほぼ一致',22,YC,W/2,H-70,true,true);
+    text('0と1にして送っても画質は落ちない。これがデジタルのすごさ。',16,MUTE,W/2,H-36,true);
+  }
+
+  function render(){
+    ctx.clearRect(0,0,W,H);ctx.fillStyle=BG;ctx.fillRect(0,0,W,H);
+    text(TITLES[scene],24,INK,W*0.03,34,false,true);
+    if(scene===0)sOriginal();
+    else if(scene===1)sSplit();
+    else if(scene===2)sBinary();
+    else if(scene===3)sSend();
+    else if(scene<=6)sOverlay(scene-4);
+    else sCompare();
+    requestAnimationFrame(render);
+  }
+  function replay(){animT0=performance.now();updateUI();}
+  function go(d){scene=Math.max(0,Math.min(N-1,scene+d));replay();}
+  function updateUI(){
+    var st=document.getElementById('steps');st.innerHTML='';
+    for(var i=0;i<N;i++){var dv=document.createElement('div');if(i<=scene)dv.className='on';st.appendChild(dv);}
+    document.getElementById('prev').disabled=scene===0;
+    document.getElementById('next').disabled=scene===N-1;
+  }
+  document.getElementById('next').onclick=function(){go(1);};
+  document.getElementById('prev').onclick=function(){go(-1);};
+  document.getElementById('replay').onclick=replay;
+  document.getElementById('grayBtn').onclick=function(){grayMode=!grayMode;};
+  document.getElementById('sample').onclick=function(){sampleIdx++;loadSample(sampleIdx);};
+  document.getElementById('pick').onclick=function(){document.getElementById('file').click();};
+  document.getElementById('file').onchange=function(e){
+    var f=e.target.files[0];if(!f)return;
+    var url=URL.createObjectURL(f),im=new Image();
+    im.onload=function(){setImage(im);URL.revokeObjectURL(url);};
+    im.src=url;
+  };
+  window.addEventListener('keydown',function(e){
+    if(e.key===' '||e.key==='ArrowRight'){e.preventDefault();go(1);}
+    else if(e.key==='ArrowLeft'||e.key==='b'||e.key==='B'){go(-1);}
+    else if(e.key==='r'||e.key==='R'){replay();}
+    else if(e.key==='g'||e.key==='G'){grayMode=!grayMode;}
+    else if(e.key==='n'||e.key==='N'){sampleIdx++;loadSample(sampleIdx);}
+  });
+  loadSample(0);
+  render();
+})();
+</script>
+</body>
+</html>
