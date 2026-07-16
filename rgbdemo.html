@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>体験ワーク｜RGB分解・通信・合成 デモ</title>
+<title>体験ワーク｜RGB 分解・合成</title>
 <style>
   :root{--bg:#0f1320;--ink:#f4f6fb;--mute:#9aa6bd;--panel:#1b2236;--r:#ff5a5a;--g:#35d084;--b:#4d8dff;--y:#ffd240;--accent:#4d8dff;}
   *{box-sizing:border-box;}
@@ -26,7 +26,7 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>RGB 分解・通信・合成 デモ</h1>
+  <h1>RGB 分解・合成</h1>
   <p class="sub">写真が「0と1」で送られて、完全に元どおりになるまで｜<a href="index.html">← クイズにもどる</a></p>
   <div class="steps" id="steps"></div>
   <canvas id="stage" width="960" height="600"></canvas>
@@ -35,7 +35,6 @@
     <button id="next" class="primary">次へ ▶</button>
     <button id="replay">↻ もう一度</button>
     <span class="spacer"></span>
-    <button id="grayBtn">チャンネル表示：色つき</button>
     <button id="sample">別のサンプル</button>
     <button id="pick">自分の写真を選ぶ</button>
     <input type="file" id="file" accept="image/*" style="display:none">
@@ -119,7 +118,7 @@
     if(label)text(label,17,lcol||MUTE,cx,cy+d[1]/2+20,true,true);
     return d;
   }
-  function layer(i){return grayMode?chanG[i]:chan[i];}
+  function layer(i){return chan[i];}
   function bin8(v){var s=v.toString(2);while(s.length<8)s='0'+s;return s;}
   function easer(t){return t<0?0:t>1?1:1-Math.pow(1-t,3);}
   function elapsed(){return(performance.now()-animT0)/1000;}
@@ -134,7 +133,7 @@
       var x=W/2+(xs[i]-W/2)*t;
       drawImg(layer(i),x,cy2,W*0.26,H*0.5,t>0.95?CH[i][0]:'',CH[i][1]);
     }
-    if(t>=1)text(grayMode?'1枚の写真は、3色の明るさの組み合わせ（白黒＝明るさの値）':'1枚の写真は、3色の明るさの組み合わせ（画面の光の色）',17,MUTE,W/2,H-38,true);
+    if(t>=1)text('1枚の写真は、3色の明るさの組み合わせ',17,MUTE,W/2,H-38,true);
   }
   function marker(cx,cy,d,src){
     var mx=cx-d[0]/2+d[0]*0.5,my=cy-d[1]/2+d[1]*0.4;
@@ -242,16 +241,6 @@
   document.getElementById('next').onclick=function(){go(1);};
   document.getElementById('prev').onclick=function(){go(-1);};
   document.getElementById('replay').onclick=replay;
-  var grayBtn=document.getElementById('grayBtn');
-  function toggleGray(){
-    grayMode=!grayMode;
-    grayBtn.textContent='チャンネル表示：'+(grayMode?'白黒（明るさ）':'色つき');
-    grayBtn.style.borderColor=grayMode?'#ffd240':'#2a3352';
-  }
-  grayBtn.onclick=function(){
-    toggleGray();
-    if(scene<1||scene>3){scene=1;replay();} // 分解シーンに移動して効果を見せる
-  };
   document.getElementById('sample').onclick=function(){sampleIdx++;loadSample(sampleIdx);};
   document.getElementById('pick').onclick=function(){document.getElementById('file').click();};
   document.getElementById('file').onchange=function(e){
@@ -264,7 +253,6 @@
     if(e.key===' '||e.key==='ArrowRight'){e.preventDefault();go(1);}
     else if(e.key==='ArrowLeft'||e.key==='b'||e.key==='B'){go(-1);}
     else if(e.key==='r'||e.key==='R'){replay();}
-    else if(e.key==='g'||e.key==='G'){toggleGray();}
     else if(e.key==='n'||e.key==='N'){sampleIdx++;loadSample(sampleIdx);}
   });
   loadSample(0);
