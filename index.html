@@ -140,8 +140,8 @@
   </div>
   <div class="toolgrid">
     <div>
-      <div class="slider-row"><span class="lab" style="color:var(--rT)">R</span><input type="range" id="sr" min="0" max="255" value="255"><span class="val" id="vr">255</span></div>
-      <div class="slider-row"><span class="lab" style="color:var(--gT)">G</span><input type="range" id="sg" min="0" max="255" value="128"><span class="val" id="vg">128</span></div>
+      <div class="slider-row"><span class="lab" style="color:var(--rT)">R</span><input type="range" id="sr" min="0" max="255" value="0"><span class="val" id="vr">0</span></div>
+      <div class="slider-row"><span class="lab" style="color:var(--gT)">G</span><input type="range" id="sg" min="0" max="255" value="0"><span class="val" id="vg">0</span></div>
       <div class="slider-row"><span class="lab" style="color:var(--bT)">B</span><input type="range" id="sb" min="0" max="255" value="0"><span class="val" id="vb">0</span></div>
     </div>
     <div><div id="swatch"></div><div class="cap" style="text-align:center;">きみの色</div></div>
@@ -295,7 +295,6 @@
     {n:'ピンク',c:[255,105,180]},
     {n:'黄緑',c:[154,205,50]},
     {n:'茶色',c:[139,69,19]},
-    {n:'グレー',c:[128,128,128]},
     {n:'白',c:[255,255,255]},
     {n:'赤',c:[255,0,0]},
     {n:'シアン（水色っぽい青緑）',c:[0,255,255]},
@@ -305,7 +304,8 @@
     {n:'深緑（ふかみどり）',c:[0,100,0]}
   ];
   var ti=0,tname=document.getElementById('tname'),tsw=document.getElementById('tswatch'),jfb=document.getElementById('judge-fb');
-  function setT(i){ti=i;var t=TG[ti];tname.textContent=t.n;tsw.style.background='rgb('+t.c.join(',')+')';jfb.innerHTML='';}
+  function setT(i){ti=i;var t=TG[ti];tname.textContent=t.n;tsw.style.background='rgb('+t.c.join(',')+')';jfb.innerHTML='';
+    sr.value=sg.value=sb.value=0;upd();}
   function answerText(){var c=TG[ti].c;return 'R '+c[0]+' / G '+c[1]+' / B '+c[2];}
   function judge(){
     var c=TG[ti].c,r=+sr.value,g=+sg.value,b=+sb.value;
