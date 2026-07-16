@@ -312,11 +312,11 @@
     var dr=r-c[0],dg=g-c[1],db=b-c[2];
     var d=Math.abs(dr)+Math.abs(dg)+Math.abs(db);
     var html;
-    if(d<=30){html='<span class="stars">★★★</span> 完ぺき！色彩マスター！　正解は '+answerText();}
-    else if(d<=90){html='<span class="stars">★★☆</span> すごい、あと少し！';}
-    else if(d<=180){html='<span class="stars">★☆☆</span> おしい！';}
+    if(d<=50){html='<span class="stars">★★★</span> 完ぺき！色彩マスター！　正解は '+answerText();}
+    else if(d<=120){html='<span class="stars">★★☆</span> すごい、あと少し！';}
+    else if(d<=220){html='<span class="stars">★☆☆</span> おしい！';}
     else{html='<b>もう少し！</b>';}
-    if(d>30){
+    if(d>50){
       var ds=[Math.abs(dr),Math.abs(dg),Math.abs(db)],ch=ds.indexOf(Math.max.apply(null,ds));
       var name=['赤（R）','緑（G）','青（B）'][ch],dir=[dr,dg,db][ch]>0?'下げて':'上げて';
       html+='<span style="color:var(--mute);font-size:14px;">　ヒント：'+name+'をもっと'+dir+'みよう</span>';
